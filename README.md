@@ -9,7 +9,7 @@ It demonstrates state management, event-driven updates, a clean separation of co
 
 ## Screenshot
 
-![alt text](Screenshot 2025-08-26 161743.png)
+![alt text]()
 *Example of the app with todos, inline editing, and completed tasks.*
 
 ---
