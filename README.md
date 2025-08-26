@@ -49,7 +49,7 @@ It demonstrates state management, event-driven updates, a clean separation of co
 1. Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone <[repository-url](https://github.com/sandroc0sta/todo-app)>
 ```
 
 2. Make sure you have **PHP** installed locally (or XAMPP for Windows).
