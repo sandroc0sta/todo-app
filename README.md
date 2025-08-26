@@ -9,7 +9,7 @@ It demonstrates state management, event-driven updates, a clean separation of co
 
 ## Screenshot
 
-![Todo List App Screenshot](./7901c14e-c57d-4c1f-956c-30829b3a3a26.png)
+![alt text](image-url)
 *Example of the app with todos, inline editing, and completed tasks.*
 
 ---
