@@ -10,6 +10,7 @@ It demonstrates state management, event-driven updates, a clean separation of co
 ## Screenshot
 
 ![How the App looks like](app-image.png)
+
 *Example of the app with todos, inline editing, and completed tasks.*
 
 ---
