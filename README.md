@@ -1,8 +1,16 @@
-# Todo List App with Elmish Architecture
+# Todo List App with Elmish Architecture and PHP Backend
 
 This project is a simple, interactive Todo List application implemented using **JavaScript** and inspired by the **Elmish** architecture.
+It now includes a **PHP + SQLite backend** for persistence, allowing todos to remain saved across page reloads.
 
-It demonstrates state management, event-driven updates, and a clean separation of concerns between **Model**, **Update**, and **View**.
+It demonstrates state management, event-driven updates, a clean separation of concerns between **Model**, **Update**, and **View**, and backend communication.
+
+---
+
+## Screenshot
+
+![Todo List App Screenshot](./7901c14e-c57d-4c1f-956c-30829b3a3a26.png)
+*Example of the app with todos, inline editing, and completed tasks.*
 
 ---
 
@@ -10,10 +18,15 @@ It demonstrates state management, event-driven updates, and a clean separation o
 
 * [Features](#features)
 * [Getting Started](#getting-started)
+* [Backend Setup](#backend-setup)
 * [Project Structure](#project-structure)
 * [Elmish Architecture Overview](#elmish-architecture-overview)
 * [Code Examples](#code-examples)
 * [Technologies Used](#technologies-used)
+* [Running Instructions](#running-instructions)
+* [Running Locally / Lokal starten](#running-locally--lokal-starten)
+* [Database](#database)
+* [Deployment](#deployment)
 * [Author](#author)
 
 ---
@@ -23,8 +36,10 @@ It demonstrates state management, event-driven updates, and a clean separation o
 * Add, edit, and delete todo items
 * Toggle completion status
 * Delete all completed tasks
+* Edit todo text inline
 * Sleek, dark-themed UI with hover and focus effects
 * Smooth button animations
+* Persistent storage via **PHP + SQLite backend**
 
 ---
 
@@ -36,189 +51,142 @@ It demonstrates state management, event-driven updates, and a clean separation o
 git clone <repository-url>
 ```
 
-2. Open `index.html` in your browser.
+2. Make sure you have **PHP** installed locally (or XAMPP for Windows).
 
-No additional build steps are required, as the app is pure JavaScript.
+3. Start the PHP server in the project folder:
+
+```bash
+cd todo-app
+php -S localhost:8000
+```
+
+4. Open your browser and navigate to:
+
+```
+http://localhost:8000/index.html
+```
+
+Todos are now stored persistently in the SQLite database.
+
+---
+
+## Backend Setup
+
+The backend uses **PHP** and **SQLite**:
+
+* `backend.php` handles all CRUD operations:
+
+  * `action=get` → fetch all todos
+  * `action=add` → add a new todo (returns assigned `id`)
+  * `action=toggle` → toggle completion by todo **ID**
+  * `action=delete` → delete a specific todo by **ID**
+  * `action=delete_completed` → delete all completed todos
+  * `action=save` → update text of a todo by **ID**
+
+* `todos.db` stores todos in a SQLite table:
+
+```sql
+CREATE TABLE IF NOT EXISTS todos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  text TEXT NOT NULL,
+  completed INTEGER DEFAULT 0
+);
+```
+
+* JavaScript `dispatch` calls the backend using `fetch()` after updating the local model, keeping the UI responsive while syncing with the database.
 
 ---
 
 ## Project Structure
 
-The application follows a simple Elmish-like architecture with three main parts:
+The application follows an **Elmish-inspired architecture** with three main parts:
 
 ### Model
 
-Represents the state of the application. In this case, it's an object containing a `todos` array:
+Represents the application state, including the list of todos:
 
 ```javascript
 function init() {
-    return {
-        todos: []
-    };
+  return {
+    todos: [] // Each todo: { id, text, completed, editing, new }
+  };
 }
 ```
 
 ### Update
 
-Handles all messages (events) and updates the model immutably.
+Handles all messages/events, updating the model immutably. All actions are now **ID-based**:
 
 ```javascript
 function update(msg, model, payload) {
-    switch (msg) {
-        case MSG.ADD_TODO:
-            return {
-                ...model,
-                todos: [...model.todos, { text: payload, completed: false, editing: false, new: true }]
-            };
-        case MSG.TOGGLE_TODO:
-            return {
-                ...model,
-                todos: model.todos.map((todo, index) =>
-                    index === payload ? { ...todo, completed: !todo.completed } : todo
-                )
-            };
-        // Other cases...
-    }
+  switch(msg) {
+    case MSG.ADD_TODO:
+      return { ...model, todos: [...model.todos, { id: payload.id, text: payload.text, completed: false, editing: false, new: true }] };
+    case MSG.TOGGLE_TODO:
+      return { ...model, todos: model.todos.map(todo => todo.id === payload ? { ...todo, completed: !todo.completed } : todo) };
+    case MSG.DELETE_TODO:
+      return { ...model, todos: model.todos.filter(todo => todo.id !== payload) };
+    case MSG.DELETE_COMPLETED:
+      return { ...model, todos: model.todos.filter(todo => !todo.completed) };
+    case MSG.EDIT_TODO:
+      return { ...model, todos: model.todos.map(todo => todo.id === payload ? { ...todo, editing: !todo.editing } : todo) };
+    case MSG.SAVE_TODO:
+      return { ...model, todos: model.todos.map(todo => todo.id === payload.id ? { ...todo, text: payload.text, editing: false } : todo) };
+  }
 }
 ```
 
 ### View
 
-Renders the UI based on the current model and dispatches messages on user interactions.
-
-```javascript
-function view(model, dispatch) {
-    const container = document.createElement('div');
-    const ul = document.createElement('ul');
-    model.todos.forEach((todo, index) => {
-        const li = document.createElement('li');
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = todo.completed;
-        checkbox.addEventListener('click', () => dispatch(MSG.TOGGLE_TODO, index));
-        li.appendChild(checkbox);
-        container.appendChild(ul);
-    });
-    return container;
-}
-```
-
-This separation ensures a predictable and maintainable code structure.
+Renders the UI and dispatches messages, using the **todo ID** for all backend interactions.
 
 ---
 
 ## Elmish Architecture Overview
 
-The **Elmish** architecture is inspired by the Elm programming language and follows a simple unidirectional data flow:
+1. **Model**: Holds the app state (`todos` array).
+2. **Update**: Pure function computing new state from current state and messages.
+3. **View**: Renders the UI from the model and dispatches messages from user actions.
 
-1. **Model**: The state of the application.
-2. **Update**: Pure functions that take a message and the current state to return a new state.
-3. **View**: A function that renders the UI from the current state and dispatches messages based on user input.
-
-This approach makes state changes predictable and easier to debug.
+This ensures **predictable, maintainable, and testable code**.
 
 ---
 
-## Technologies Used
+## Database
 
-* JavaScript (ES6+)
-* HTML & CSS
-* Elmish-inspired architecture pattern
+* **`todos.db`**: The main SQLite database used by the backend. Stores all todos persistently.
+* **Structure:** Each todo has `id`, `text`, and `completed` columns.
+* **`database.sqlite`**: Not used by the current backend; can be ignored or deleted.
+* Backend automatically creates the table if it doesn’t exist.
+
+---
+
+## Running Locally / Lokal starten
+
+#### English
+
+1. Install XAMPP (or PHP).
+2. Copy the project folder into `htdocs` (for XAMPP).
+3. Start Apache.
+4. Open `http://localhost/<your-project-folder>/`.
+
+#### Deutsch
+
+1. XAMPP installieren (oder PHP lokal).
+2. Projektordner in `htdocs` kopieren.
+3. Apache starten.
+4. Browser öffnen: `http://localhost/<dein-projekt-ordner>/`.
+
+---
+
+## Deployment
+
+* **Local:** PHP built-in server or XAMPP/MAMP/LAMP.
+* **Online:** PHP-enabled hosting, upload all project files (`index.html`, `main.js`, `css`, `backend.php`, `todos.db`).
+* **GitHub:** Version control only; GitHub Pages cannot run PHP.
 
 ---
 
 ## Author
-
-Sandro Costa
-
----
-
-## German Version
-
-# Todo-Liste App mit Elmish-Architektur
-
-Dieses Projekt ist eine einfache, interaktive Todo-Liste-App, die mit **JavaScript** implementiert und von der **Elmish-Architektur** inspiriert ist.
-
-Sie demonstriert Zustandsverwaltung, ereignisgesteuerte Updates und eine saubere Trennung zwischen **Model**, **Update** und **View**.
-
-## Funktionen
-
-* Hinzufügen, Bearbeiten und Löschen von Todos
-* Umschalten des Status von erledigt/nicht erledigt
-* Löschen aller erledigten Aufgaben
-* Dunkles, elegantes UI mit Hover- und Fokus-Effekten
-* Sanfte Button-Animationen
-
-## Projektstruktur
-
-### Model
-
-Repräsentiert den Zustand der App:
-
-```javascript
-function init() {
-    return {
-        todos: []
-    };
-}
-```
-
-### Update
-
-Verarbeitet Nachrichten und aktualisiert das Model unveränderlich:
-
-```javascript
-function update(msg, model, payload) {
-    switch (msg) {
-        case MSG.ADD_TODO:
-            return {
-                ...model,
-                todos: [...model.todos, { text: payload, completed: false, editing: false, new: true }]
-            };
-        // Weitere Fälle...
-    }
-}
-```
-
-### View
-
-Rendert die UI basierend auf dem aktuellen Model und dispatcht Nachrichten bei Benutzerinteraktionen:
-
-```javascript
-function view(model, dispatch) {
-    const container = document.createElement('div');
-    const ul = document.createElement('ul');
-    model.todos.forEach((todo, index) => {
-        const li = document.createElement('li');
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = todo.completed;
-        checkbox.addEventListener('click', () => dispatch(MSG.TOGGLE_TODO, index));
-        li.appendChild(checkbox);
-        container.appendChild(ul);
-    });
-    return container;
-}
-```
-
-### Elmish-Architektur
-
-Elmish ist inspiriert von der Elm-Programmiersprache und folgt einem unidirektionalen Datenfluss:
-
-1. **Model**: Der Zustand der Anwendung.
-2. **Update**: Reine Funktionen, die eine Nachricht und den aktuellen Zustand verarbeiten und einen neuen Zustand zurückgeben.
-3. **View**: Eine Funktion, die die UI aus dem aktuellen Zustand rendert und Nachrichten basierend auf Benutzeraktionen dispatcht.
-
-Diese Trennung sorgt für vorhersehbare und wartbare Zustandsänderungen.
-
----
-
-## Technologien
-
-* JavaScript (ES6+)
-* HTML & CSS
-* Elmish-inspiriertes Architekturpattern
-
-## Autor
 
 Sandro Costa
