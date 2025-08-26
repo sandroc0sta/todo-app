@@ -191,3 +191,199 @@ This ensures **predictable, maintainable, and testable code**.
 ## Author
 
 Sandro Costa
+
+---
+
+# Todo-Listen-App mit Elmish-Architektur und PHP-Backend (Deutsch)
+
+Dieses Projekt ist eine einfache, interaktive Todo-Listen-Anwendung, implementiert mit **JavaScript** und inspiriert von der **Elmish-Architektur**.
+Es enthält nun ein **PHP + SQLite Backend** für persistente Speicherung, sodass Todos auch nach dem Neuladen der Seite erhalten bleiben.
+
+Die App demonstriert **Zustandsverwaltung**, **ereignisgesteuerte Updates**, eine saubere Trennung zwischen **Model**, **Update** und **View** sowie die Kommunikation mit dem Backend.
+
+---
+
+## Screenshot
+
+![So sieht die App aus](app-image.png)
+
+*Beispiel der App mit Todos, Inline-Bearbeitung und erledigten Aufgaben.*
+
+---
+
+## Inhaltsverzeichnis
+
+* [Funktionen](#funktionen)
+* [Erste Schritte](#erste-schritte)
+* [Backend Setup](#backend-setup)
+* [Projektstruktur](#projektstruktur)
+* [Elmish-Architektur Übersicht](#elmish-architektur-übersicht)
+* [Code-Beispiele](#code-beispiele)
+* [Verwendete Technologien](#verwendete-technologien)
+* [Anleitung zum Ausführen](#anleitung-zum-ausführen)
+* [Lokal starten / Running Locally](#lokal-starten--running-locally)
+* [Datenbank](#datenbank)
+* [Deployment](#deployment)
+* [Autor](#autor)
+
+---
+
+## Funktionen
+
+* Todo-Elemente hinzufügen, bearbeiten und löschen
+* Erledigt-Status umschalten
+* Alle erledigten Aufgaben löschen
+* Inline-Bearbeitung von Todo-Text
+* Dunkles, modernes Design mit Hover- und Fokuseffekten
+* Sanfte Button-Animationen
+* Persistente Speicherung über **PHP + SQLite Backend**
+
+---
+
+## Erste Schritte
+
+1. Repository klonen:
+
+```bash
+git clone <repository-url>
+```
+
+2. Stelle sicher, dass **PHP** lokal installiert ist (oder XAMPP für Windows).
+
+3. Starte den PHP-Server im Projektordner:
+
+```bash
+cd todo-app
+php -S localhost:8000
+```
+
+4. Öffne den Browser und gehe zu:
+
+```
+http://localhost:8000/index.html
+```
+
+Die Todos werden nun persistent in der SQLite-Datenbank gespeichert.
+
+---
+
+## Backend Setup
+
+Das Backend nutzt **PHP** und **SQLite**:
+
+* `backend.php` verarbeitet alle CRUD-Operationen:
+
+  * `action=get` → Alle Todos abrufen
+  * `action=add` → Neues Todo hinzufügen (gibt `id` zurück)
+  * `action=toggle` → Erledigt-Status nach Todo-**ID** umschalten
+  * `action=delete` → Bestimmtes Todo nach **ID** löschen
+  * `action=delete_completed` → Alle erledigten Todos löschen
+  * `action=save` → Text eines Todos nach **ID** aktualisieren
+
+* `todos.db` speichert Todos in einer SQLite-Tabelle:
+
+```sql
+CREATE TABLE IF NOT EXISTS todos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  text TEXT NOT NULL,
+  completed INTEGER DEFAULT 0
+);
+```
+
+* JavaScript `dispatch` ruft das Backend per `fetch()` auf, nachdem das lokale Modell aktualisiert wurde, sodass die UI weiterhin reaktionsschnell bleibt.
+
+---
+
+## Projektstruktur
+
+Die Anwendung folgt einer **Elmish-inspirierten Architektur** mit drei Hauptbereichen:
+
+### Model
+
+Repräsentiert den Anwendungszustand, einschließlich der Todo-Liste:
+
+```javascript
+function init() {
+  return {
+    todos: [] // Jedes Todo: { id, text, completed, editing, new }
+  };
+}
+```
+
+### Update
+
+Verarbeitet alle Nachrichten/Ereignisse und aktualisiert das Modell unveränderlich. Alle Aktionen sind nun **ID-basiert**:
+
+```javascript
+function update(msg, model, payload) {
+  switch(msg) {
+    case MSG.ADD_TODO:
+      return { ...model, todos: [...model.todos, { id: payload.id, text: payload.text, completed: false, editing: false, new: true }] };
+    case MSG.TOGGLE_TODO:
+      return { ...model, todos: model.todos.map(todo => todo.id === payload ? { ...todo, completed: !todo.completed } : todo) };
+    case MSG.DELETE_TODO:
+      return { ...model, todos: model.todos.filter(todo => todo.id !== payload) };
+    case MSG.DELETE_COMPLETED:
+      return { ...model, todos: model.todos.filter(todo => !todo.completed) };
+    case MSG.EDIT_TODO:
+      return { ...model, todos: model.todos.map(todo => todo.id === payload ? { ...todo, editing: !todo.editing } : todo) };
+    case MSG.SAVE_TODO:
+      return { ...model, todos: model.todos.map(todo => todo.id === payload.id ? { ...todo, text: payload.text, editing: false } : todo) };
+  }
+}
+```
+
+### View
+
+Rendert die Benutzeroberfläche und sendet Nachrichten, unter Verwendung der **Todo-ID** für alle Backend-Interaktionen.
+
+---
+
+## Elmish-Architektur Übersicht
+
+1. **Model**: Speichert den Zustand der App (`todos` Array).
+2. **Update**: Pure Funktion, die den neuen Zustand aus dem aktuellen Zustand und den Nachrichten berechnet.
+3. **View**: Rendert die UI basierend auf dem Modell und sendet Nachrichten basierend auf Benutzeraktionen.
+
+Dies sorgt für **vorhersehbaren, wartbaren und testbaren Code**.
+
+---
+
+## Datenbank
+
+* **`todos.db`**: Haupt-SQLite-Datenbank, die vom Backend verwendet wird. Speichert alle Todos dauerhaft.
+* **Struktur:** Jedes Todo hat `id`, `text` und `completed`.
+* **`database.sqlite`**: Wird aktuell nicht genutzt; kann ignoriert oder gelöscht werden.
+* Das Backend erstellt die Tabelle automatisch, falls sie nicht existiert.
+
+---
+
+## Lokal starten / Running Locally
+
+#### Deutsch
+
+1. XAMPP installieren (oder PHP lokal).
+2. Projektordner in `htdocs` kopieren.
+3. Apache starten.
+4. Browser öffnen: `http://localhost/<dein-projekt-ordner>/`.
+
+#### English
+
+1. Install XAMPP (or PHP).
+2. Copy the project folder into `htdocs` (for XAMPP).
+3. Start Apache.
+4. Open `http://localhost/<your-project-folder>/`.
+
+---
+
+## Deployment
+
+* **Lokal:** PHP Built-in Server oder XAMPP/MAMP/LAMP.
+* **Online:** PHP-fähiges Hosting, alle Projektdateien hochladen (`index.html`, `main.js`, `css`, `backend.php`, `todos.db`).
+* **GitHub:** Nur Versionskontrolle; GitHub Pages kann kein PHP ausführen.
+
+---
+
+## Autor
+
+Sandro Costa
